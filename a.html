@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Design Assignment — Submission</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--accent1:#ff4d6d;--accent2:#7b2fff;--accent3:#00f5d4;--gold:#ffd60a;--text:#e8e8f0;--muted:#888899;--border:rgba(255,255,255,0.08);}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:14px;line-height:1.7;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:0.4;}
+
+/* ── INTRO OVERLAY ── */
+#intro-overlay{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;}
+.intro-msg{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.6rem,4.5vw,3.2rem);letter-spacing:0.07em;text-align:center;padding:0 2rem;opacity:0;transform:translateY(22px);transition:opacity 0.65s ease,transform 0.65s ease;position:absolute;width:100%;line-height:1.35;}
+.intro-msg.vis{opacity:1;transform:translateY(0);}
+.intro-msg.out{opacity:0;transform:translateY(-22px);}
+
+/* ── SCROLL HINT ── */
+#scroll-hint{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);z-index:500;opacity:0;pointer-events:none;transition:opacity 0.5s;display:flex;flex-direction:column;align-items:center;gap:0.5rem;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);}
+#scroll-hint.show{opacity:1;}
+.arr{width:20px;height:20px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);animation:barr 1.1s ease-in-out infinite;}
+@keyframes barr{0%,100%{transform:rotate(45deg) translateY(0);}50%{transform:rotate(45deg) translateY(5px);}}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(123,47,255,0.18) 0%,transparent 70%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(255,77,109,0.12) 0%,transparent 60%),var(--bg);}
+.hero-main{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,3.5vw,2.8rem);letter-spacing:0.06em;color:var(--gold);line-height:1.35;margin-bottom:1.25rem;}
+.hero-sub-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,7vw,5.5rem);letter-spacing:0.05em;color:var(--accent1);text-shadow:0 0 40px rgba(255,77,109,0.5);line-height:1.1;}
+
+/* ── LAYOUT ── */
+.section-wrap{max-width:1100px;margin:0 auto;padding:5rem 2rem;}
+.section-header{display:flex;align-items:center;gap:1.5rem;margin-bottom:3rem;}
+.task-label{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:0.05em;}
+.task-divider{flex:1;height:1px;background:var(--border);}
+.section-sep{height:1px;background:var(--border);}
+
+/* ── TABS ── */
+.level-tabs{display:flex;border:1px solid var(--border);border-radius:2px;overflow:hidden;margin-bottom:2rem;width:fit-content;}
+.level-tab{padding:10px 28px;cursor:pointer;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;border:none;background:transparent;color:var(--muted);}
+.level-tab.easy.active{background:rgba(0,245,212,0.15);color:var(--accent3);}
+.level-tab.mid.active{background:rgba(255,214,10,0.15);color:var(--gold);}
+.level-tab.hard.active{background:rgba(255,77,109,0.15);color:var(--accent1);}
+.level-tab:hover{color:var(--text);}
+.level-content{display:none;}
+.level-content.active{display:block;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── GAME CARDS ── */
+.game-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;}
+.game-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.card-easy::before{background:var(--accent3);}
+.card-mid::before{background:var(--gold);}
+.card-hard::before{background:var(--accent1);}
+.cst{font-family:'Syne',sans-serif;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;margin-top:1.8rem;}
+.cst:first-child{margin-top:0;}
+.ctitle{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:0.05em;line-height:1.1;margin-bottom:0.75rem;}
+.ctext{color:#c0c0d0;font-size:13px;line-height:1.8;}
+.hl{background:rgba(123,47,255,0.25);border-left:2px solid var(--accent2);padding:1rem 1.25rem;border-radius:0 2px 2px 0;margin:1rem 0;font-size:13px;color:var(--text);}
+.hl.d{background:rgba(255,77,109,0.1);border-left-color:var(--accent1);}
+.hl.g{background:rgba(255,214,10,0.08);border-left-color:var(--gold);}
+.hl.t{background:rgba(0,245,212,0.08);border-left-color:var(--accent3);}
+.sc{position:absolute;top:1.5rem;right:1.5rem;font-family:'Bebas Neue',sans-serif;font-size:2rem;line-height:1;}
+.sc span{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.15em;display:block;text-align:right;margin-top:2px;}
+.easy .sc{color:var(--accent3);} .mid .sc{color:var(--gold);}
+
+/* ── MEDIA ── */
+.media-box{border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface2);}
+.media-box img,.media-box video{width:100%;display:block;}
+.media-err{padding:3rem;text-align:center;color:var(--muted);font-size:12px;letter-spacing:0.1em;display:flex;flex-direction:column;gap:0.5rem;aspect-ratio:16/9;align-items:center;justify-content:center;}
+
+/* ── FBX ── */
+.fbx-wrap{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface2);}
+#fbx-canvas{width:100%;aspect-ratio:16/9;background:#080810;display:block;cursor:grab;}
+#fbx-canvas:active{cursor:grabbing;}
+.fbx-label{position:absolute;top:1rem;left:50%;transform:translateX(-50%);z-index:10;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:0.2em;color:var(--accent2);text-shadow:0 0 20px rgba(123,47,255,0.8);pointer-events:none;white-space:nowrap;}
+.fbx-controls{display:flex;gap:1rem;align-items:center;padding:1rem 1.25rem;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--muted);flex-wrap:wrap;}
+.fbx-btn{padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:2px;color:var(--text);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;letter-spacing:0.1em;}
+.fbx-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ── VIDEO ── */
+.vid-wrap{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.vid-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);opacity:0;transition:opacity 0.3s;pointer-events:none;font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:0.1em;color:var(--accent1);}
+.vid-msg.show{opacity:1;}
+
+/* ── OUTRO ── */
+#outro{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;position:relative;background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(123,47,255,0.15) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 20% 80%,rgba(255,77,109,0.1) 0%,transparent 60%),var(--bg);border-top:1px solid var(--border);}
+.ol{opacity:0;transform:translateY(28px);transition:opacity 0.8s ease,transform 0.8s ease;}
+.ol.rev{opacity:1;transform:translateY(0);}
+.ol-main{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,3.5vw,2.6rem);letter-spacing:0.06em;color:var(--gold);line-height:1.35;margin-bottom:1rem;}
+.ol-sub{font-family:'Bebas Neue',sans-serif;font-size:clamp(2rem,6vw,4.5rem);letter-spacing:0.05em;color:var(--accent1);text-shadow:0 0 40px rgba(255,77,109,0.4);margin-bottom:3rem;}
+.o-div{width:60px;height:2px;background:var(--border);margin:2rem auto;opacity:0;transition:opacity 0.8s 0.3s;}
+.o-div.rev{opacity:1;}
+.ig-btn{display:inline-flex;align-items:center;gap:0.85rem;padding:18px 40px;border:1.5px solid rgba(225,48,108,0.45);border-radius:3px;font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:0.12em;color:var(--text);text-decoration:none;background:transparent;cursor:pointer;opacity:0;transform:translateY(20px);transition:opacity 0.8s ease,transform 0.8s ease,border-color 0.2s,color 0.2s,box-shadow 0.2s;}
+.ig-btn.rev{opacity:1;transform:translateY(0);}
+.ig-btn:hover{border-color:#e1306c;color:#e1306c;box-shadow:0 8px 30px rgba(225,48,108,0.2);}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+@media(max-width:600px){.ol-main{font-size:1.3rem;}.ol-sub{font-size:2.5rem;}}
+</style>
+</head>
+<body>
+
+<!-- ══ INTRO OVERLAY ══ -->
+<div id="intro-overlay">
+  <div class="intro-msg" id="im1" style="color:var(--accent3);">USE HEADPHONES FOR BETTER EXPERIENCE 🎧</div>
+  <div class="intro-msg" id="im2" style="color:var(--gold);">Andi mndi shndi,<br>saare tasks last tk nhi dekhe to…</div>
+  <div class="intro-msg" id="im3" style="color:var(--accent1);">baaki aap samjhdar ho 😏</div>
+</div>
+
+<!-- SCROLL HINT -->
+<div id="scroll-hint"><span>scroll to explore</span><div class="arr"></div></div>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-main">Andi mndi shndi,<br>saare tasks last tk nhi dekhe to…</div>
+  <div class="hero-sub-big">baaki aap samjhdar ho 😏</div>
+</section>
+
+<!-- ══════════════════════════════
+     TASK 1 — LV1 + LV2 only
+══════════════════════════════ -->
+<div class="section-wrap" id="t1">
+  <div class="section-header">
+    <div class="task-label" style="color:var(--accent3);">TASK 01</div>
+    <div class="task-divider"></div>
+    <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">Game Design Documents</div>
+  </div>
+
+  <div class="level-tabs">
+    <button class="level-tab easy active" onclick="sw('t1','easy',this)">LV.1 Easy [20]</button>
+    <button class="level-tab mid"         onclick="sw('t1','mid',this)">LV.2 Intermediate [40]</button>
+  </div>
+
+  <!-- LV1 -->
+  <div class="level-content active" id="t1-easy">
+    <div class="game-card card-easy easy">
+      <div class="sc">20<span>pts</span></div>
+      <div class="cst">01 · Game Pitch</div>
+      <div class="ctitle">THIRD LEG SYNDROME</div>
+      <p class="ctext">A 2D stealth-horror comedy about surviving public spaces while having an extremely visible boner at the worst possible times.</p>
+      <div class="hl t"><strong>Target Audience:</strong> Ages 12–30. People who understand that sometimes the human body becomes your greatest enemy for absolutely no reason.</div>
+      <p class="ctext"><strong>Setting:</strong> Side-scrolling classrooms, metro trains, office meetings, gyms, and elevators populated entirely by women who are completely normal — which somehow makes everything worse. Fluorescent lights buzz constantly. Shadows feel too long. Every hallway feels like a nightmare corridor.</p>
+      <p class="ctext" style="margin-top:0.75rem;"><strong>Goal:</strong> Reach the exit of each level without anyone realizing you have a boner. The game treats it like a survival-horror infection. The more natural you try to act, the more the controls betray you.</p>
+
+      <div class="cst">02 · Core Game Design</div>
+      <div class="hl"><strong>Hostile Controls — Only 4 buttons:</strong> [LEFT], [RIGHT], [STAND], and [HIDE]. The boner has its own physics engine. Walking too fast causes visible bouncing, accidental thrusting, and balance loss. Sudden stops create delayed jiggle physics and awkward posture corrections. Higher stress adds movement delay, forced waddling, and random input lockups.</div>
+      <div class="hl t" style="margin-top:1rem;"><strong>Bloodflow Meter:</strong> Eye contact, nearby women, hearing your name, or thinking "okay it's gone now" fills the stress meter. Higher bloodflow makes the boner larger and harder to control. At maximum stress, standing upright becomes physically impossible.</div>
+      <div class="hl" style="margin-top:1rem;"><strong>Women AI System:</strong> If NPCs notice strange movement, they don't attack. They just stare silently, whisper to each other, and pretend nothing is wrong while staring directly at the boner. Some slowly circle the player without breaking eye contact.<br><br>One quietly says: <em>"You're trying really hard to hide it."</em><br>Another smiles slightly: <em>"It looks painful."</em></div>
+      <p class="ctext" style="margin-top:1rem;"><strong>Points:</strong> You earn points for walking naturally, maintaining eye contact, standing up successfully, and surviving conversations. Highest rank: <strong>"NO ONE KNOWS"</strong>.</p>
+      <div class="hl d"><strong>Failure State:</strong> A woman fully notices the boner. Time slows down. Nearby conversations stop one by one. NPC heads slowly rotate toward the player like a horror-movie enemy reveal. The player loses all movement except tiny desperate shuffles while the boner physics continue moving on their own.<br><br>The fluorescent lights dim. NPC shadows stop matching their bodies.<br><br>One woman whispers: <em>"You should've stayed sitting."</em><br>Another quietly says: <em>"Don't worry. We were all pretending not to notice."</em><br><br>Then the internal monologue appears:<br><br><em>"They can smell the weakness.<br>They want to watch it happen."</em><br><br>Game over sound: the metallic scream of jean zipper teeth violently separating under pressure… followed by fabric tearing directly beside the microphone.</div>
+
+      <div class="cst">03 · Art & Sound</div>
+      <p class="ctext"><strong>Visual:</strong> Dark pixel art with harsh fluorescent lighting. NPCs look completely ordinary while the player animates like a man trying to smuggle cursed dynamite in his pants. Shadows stretch unnaturally during panic. The environment subtly bends at high stress levels.</p>
+      <p class="ctext" style="margin-top:0.5rem;"><strong>Audio:</strong> Heartbeats mixed with bass-heavy horror drones. Fabric stretching sounds. Nervous swallowing. Tiny movements become absurdly loud in the player's head. During detection scenes, all ambient audio cuts except fluorescent buzzing and slow breathing directly into the microphone.</p>
+
+      <div class="cst">04 · Ending</div>
+      <div class="hl d">After surviving every level, the player reaches home at 3 AM.<br><br>Safe. Alone. Finally relaxed.<br><br>The character stands silently in darkness.<br><br>Then from another room:<br><br><em>"You're still awake?"</em><br><br>It's not possible.<br>You live alone.<br><br>The apartment lights slowly turn on one by one.<br><br>The final level title appears:<br><br><strong>"MOTHER'S VISIT"</strong><br><br>The stress meter instantly fills to 100%.<br><br>Credits roll before gameplay even starts.</div>
+    </div>
+  </div>
+
+  <!-- LV2 -->
+  <div class="level-content" id="t1-mid">
+    <div class="game-card card-mid mid">
+      <div class="sc" style="color:var(--gold)">40<span>pts</span></div>
+      <div class="cst">01 · Game Pitch</div>
+      <div class="ctitle">DON'T TOUCH YOURSELF</div>
+      <p class="ctext">A 3D psychological horror exploration game about a man isolated in his apartment for weeks, slowly losing trust in whether his desires are truly his anymore.</p>
+      <div class="hl g"><strong>Target Audience:</strong> Ages 18–35. Players who enjoy intimate psychological horror and slow-burn dread over traditional monsters — the Silent Hill 2, PT, Layers of Fear crowd.</div>
+      <p class="ctext"><strong>Setting:</strong> A cramped apartment lit by weak fluorescent kitchen lights and pale moonlight leaking through blinds. Mirrors linger too long. Dark windows reflect the room incorrectly. The apartment slowly stops feeling private.</p>
+      <p class="ctext" style="margin-top:0.5rem;"><strong>Goal:</strong> Survive isolation without fully surrendering control of your body. Reach morning without using the mechanic again.</p>
+
+      <div class="cst">02 · Core Game Design</div>
+      <div class="hl g"><strong>Degrading Mechanic — Masturbation (one button):</strong><br>
+        Ch.1: Stress relief. Stabilizes breathing and camera sway.<br>
+        Ch.2: Animation continues briefly after button release.<br>
+        Ch.3: Action begins before input is fully pressed.<br>
+        Ch.4: Character reacts to someone unseen during the act.<br>
+        Final: Another hand continues the motion after yours stops.</div>
+      <p class="ctext" style="margin-top:1rem;"><strong>Narrative Integration — No text, no UI:</strong> The mechanic slowly stops feeling voluntary. The player holds the button and the character hesitates first — like he already knows what's about to happen. Sometimes the animation starts before input fully registers. Sometimes it keeps going after release. Mirrors reflect delayed movements. Shadows move slightly out of sync. The character automatically glances toward empty corners during the act, behaving like someone else is in the apartment long before the player notices anything wrong.</p>
+
+      <div class="cst">03 · Art, Sound & Failure State</div>
+      <p class="ctext"><strong>Visual:</strong> Desaturated 3D interiors with darkness pooling unnaturally around room corners. Camera subtly drifts toward mirrors and black windows during high-stress moments. Reflections occasionally move half a second late. Character animations become less synchronized with player input as the story progresses.</p>
+      <div class="hl d"><strong>Sensory Feedback:</strong> Controller vibration mimics uneven heartbeat pulses mixed with subtle rhythmic movement. During late-game sequences, vibrations continue several seconds after input stops. Breathing audio becomes humiliatingly close to the microphone. A second calm female breathing pattern slowly fades underneath the character's own. At full collapse, controller haptics continue independently from player action — like another person's touch overriding your own hands.</div>
+      <p class="ctext"><strong>Audio:</strong> Fluorescent buzzing. Uneven swallowing. Long stretches of silence where the apartment itself seems to be listening. During late-game scenes, the character quietly whispers:<br><br><em>"...please stop watching me."</em><br><br>No response. Only breathing.<br><br>In the final sequence, the character sits exposed in pale moonlight while the player still controls the camera. His hand suddenly stops moving — but the motion continues anyway.<br><br>A second pale hand slowly enters frame and rests over his wrist.<br><br>The character whispers: <em>"…I didn't touch myself tonight."</em><br><br>Then a woman softly says beside his ear: <em>"There you are."</em><br><br>The second hand slowly squeezes tighter.<br><br>Cut to black.<br><br>The controller continues pulsing slowly in the player's hands like another person's heartbeat.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section-sep"></div>
+
+<!-- ══════════════════════════════
+     TASK 3 — all 3 levels
+══════════════════════════════ -->
+<div class="section-wrap">
+  <div class="section-header">
+    <div class="task-label" style="color:var(--accent2);">TASK 03</div>
+    <div class="task-divider"></div>
+    <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">Media Assets</div>
+  </div>
+  <div class="level-tabs">
+    <button class="level-tab easy active" onclick="sw('t3','easy',this)">LV.1 Image</button>
+    <button class="level-tab mid"         onclick="sw('t3','mid',this)">LV.2 Floating Collectible</button>
+    <button class="level-tab hard"        onclick="sw('t3','hard',this)">LV.3 Melee Weapon</button>
+  </div>
+
+  <div class="level-content active" id="t3-easy">
+    <div class="media-box">
+      <img src="assets/t3-level1.png" alt="Level 1 Asset" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div class="media-err" style="display:none;"><span style="font-size:2rem;opacity:0.3;">🖼</span><span>Place <code>t3-level1.png</code> in <code>assets/</code></span></div>
+    </div>
+  </div>
+
+  <div class="level-content" id="t3-mid">
+    <div class="media-box">
+      <img src="assets/t3-level2.gif" alt="Level 2 GIF" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div class="media-err" style="display:none;"><span style="font-size:2rem;opacity:0.3;">🎞</span><span>Place <code>t3-level2.gif</code> in <code>assets/</code></span></div>
+    </div>
+  </div>
+
+  <div class="level-content" id="t3-hard">
+    <div class="fbx-wrap">
+      <div class="fbx-label" id="fbx-title">MELEE WEAPON</div>
+      <canvas id="fbx-canvas"></canvas>
+      <div class="fbx-controls">
+        <span style="color:var(--accent3);" id="fbx-status">Loading model…</span>
+        <span style="margin-left:auto;">🖱 Drag to rotate · Scroll to zoom</span>
+        <button class="fbx-btn" id="fbx-rot-btn" onclick="toggleRot()">⟳ Auto Rotate: ON</button>
+        <button class="fbx-btn" onclick="resetCam()">⌖ Reset View</button>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:0.75rem;">Place your model as <code>assets/t3-level3.glb</code> in the assets folder.</p>
+  </div>
+</div>
+
+<div class="section-sep"></div>
+
+<!-- ══════════════════════════════
+     TASK 5 — LV1 + LV3 only
+══════════════════════════════ -->
+<div class="section-wrap">
+  <div class="section-header">
+    <div class="task-label" style="color:var(--accent1);">TASK 05</div>
+    <div class="task-divider"></div>
+    <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">Game Screenshots</div>
+  </div>
+  <div class="level-tabs">
+    <button class="level-tab easy active" onclick="sw('t5','easy',this)">LV.1 Screenshot</button>
+    <button class="level-tab hard"        onclick="sw('t5','hard',this)">LV.3 Cinematic</button>
+  </div>
+
+  <!-- LV1 -->
+  <div class="level-content active" id="t5-easy">
+    <div class="media-box">
+      <img src="assets/t5-level1.png" alt="Screenshot" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+      <div class="media-err" style="display:none;"><span style="font-size:2rem;opacity:0.3;">📸</span><span>Place <code>t5-level1.png</code> in <code>assets/</code></span></div>
+    </div>
+  </div>
+
+  <!-- LV3 Video — scroll locked while playing, warns on close -->
+  <div class="level-content" id="t5-hard">
+    <div class="vid-wrap">
+      <video id="main-vid" controls style="width:100%;display:block;background:#000;"
+             onplay="vidLock(true)" onpause="vidLock(false)" onended="vidLock(false)">
+        <source src="assets/t5-level3.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+      </video>
+      <div class="vid-msg" id="vid-msg">⛔ VIDEO PLAYING — SCROLL LOCKED</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-sep"></div>
+
+<!-- ══ OUTRO ══ -->
+<div id="outro">
+  <div class="ol ol-main" id="o1">Andi mndi shndi,<br>saare tasks last tk nhi dekhe to…</div>
+  <div class="ol ol-sub"  id="o2">baaki aap samjhdar ho 😏</div>
+  <div class="o-div"      id="o3"></div>
+  <button class="ig-btn ol" id="o4"
+    onclick="window.open('https://www.instagram.com/aapki_maa_ki_kacchi?igsh=MWx5cTlzMzhmcGJnOQ==','_blank')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+    </svg>
+    DM ON INSTAGRAM
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── SCROLL-TO-CLOSE LOCK ──
+let reachedEnd = false;
+window.addEventListener('scroll', () => {
+  if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 60) reachedEnd = true;
+}, { passive: true });
+window.addEventListener('beforeunload', e => {
+  if (!reachedEnd) { e.preventDefault(); e.returnValue = "You haven't reached the end yet! Keep scrolling 👀"; return e.returnValue; }
+});
+
+// ── INTRO SEQUENCE ──
+(function() {
+  const ov = document.getElementById('intro-overlay');
+  const [m1,m2,m3] = ['im1','im2','im3'].map(id => document.getElementById(id));
+  const show = el => el.classList.add('vis');
+  const hide = el => { el.classList.remove('vis'); el.classList.add('out'); };
+
+  setTimeout(() => show(m1), 300);
+  setTimeout(() => { hide(m1); setTimeout(() => { m1.classList.remove('out'); show(m2); }, 650); }, 2800);
+  setTimeout(() => { hide(m2); setTimeout(() => { m2.classList.remove('out'); show(m3); }, 650); }, 6200);
+  setTimeout(() => {
+    hide(m3);
+    setTimeout(() => {
+      ov.style.transition = 'opacity 0.9s ease';
+      ov.style.opacity = '0';
+      ov.style.pointerEvents = 'none';
+      setTimeout(() => {
+        ov.remove();
+        const hint = document.getElementById('scroll-hint');
+        hint.classList.add('show');
+        setTimeout(() => hint.classList.remove('show'), 4000);
+      }, 900);
+    }, 600);
+  }, 9500);
+})();
+
+// ── OUTRO REVEAL ON SCROLL ──
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('rev'), parseInt(e.target.dataset.d || 0));
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.2 });
+[['o1',0],['o2',350],['o3',650],['o4',900]].forEach(([id,d]) => {
+  const el = document.getElementById(id); el.dataset.d = d; obs.observe(el);
+});
+
+// ── TAB SWITCH ──
+function sw(task, level, btn) {
+  document.querySelectorAll(`[id^="${task}-"]`).forEach(el => { el.style.display='none'; el.classList.remove('active'); });
+  const t = document.getElementById(`${task}-${level}`);
+  if (t) { t.style.display='block'; t.classList.add('active'); }
+  btn.closest('.level-tabs').querySelectorAll('.level-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // re-measure 3D canvas when tab becomes visible
+  if (task === 't3' && level === 'hard') setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+}
+
+// ── VIDEO SCROLL LOCK ──
+function vidLock(lock) {
+  document.body.style.overflow = lock ? 'hidden' : '';
+  document.getElementById('vid-msg').classList.toggle('show', lock);
+  window.onbeforeunload = lock
+    ? () => 'Video is playing — please watch to the end!'
+    : reachedEnd ? null : e => { e.preventDefault(); e.returnValue = "Haven't reached the end yet!"; return e.returnValue; };
+}
+
+// ── 3D VIEWER ──
+(function() {
+  requestAnimationFrame(function() {
+    const canvas = document.getElementById('fbx-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    const W = canvas.parentElement.offsetWidth || 800;
+    const H = Math.round(W * 9/16);
+    canvas.width = W; canvas.height = H;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(W, H);
+    renderer.setClearColor(0x080810, 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000);
+    camera.position.set(0, 0, 3);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const dl = new THREE.DirectionalLight(0xffffff, 1); dl.position.set(3,5,3); scene.add(dl);
+    const pl = new THREE.PointLight(0x7b2fff, 1.5, 20); pl.position.set(-3,3,-3); scene.add(pl);
+
+    let model = null;
+    window._ar = true;
+    let zm = 3;
+
+    function fallback() {
+      if (model) scene.remove(model);
+      model = new THREE.Mesh(
+        new THREE.BoxGeometry(1.5,1.5,1.5),
+        new THREE.MeshStandardMaterial({ color:0x7b2fff, roughness:0.4, metalness:0.6 })
+      );
+      scene.add(model);
+      document.getElementById('fbx-status').textContent = 'Preview — place t3-level3.glb in assets/';
+    }
+    fallback();
+
+    const gs = document.createElement('script');
+    gs.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js';
+    gs.onload = () => {
+      try {
+        new THREE.GLTFLoader().load(
+          'assets/t3-level3.glb',
+          gltf => {
+            scene.remove(model);
+            model = gltf.scene;
+            const box = new THREE.Box3().setFromObject(model);
+            model.position.sub(box.getCenter(new THREE.Vector3()));
+            const sz = box.getSize(new THREE.Vector3()).length();
+            zm = sz * 1.8;
+            camera.position.set(0, sz * 0.2, zm);
+            scene.add(model);
+            document.getElementById('fbx-status').textContent = '✓ t3-level3.glb loaded';
+          },
+          xhr => { document.getElementById('fbx-status').textContent = `Loading… ${Math.round(xhr.loaded/(xhr.total||1)*100)}%`; },
+          () => fallback()
+        );
+      } catch(e) {}
+    };
+    document.head.appendChild(gs);
+
+    let dr=false, px=0, py=0, rx=0, ry=0;
+
+    canvas.addEventListener('mousedown', e => { dr=true; px=e.clientX; py=e.clientY; });
+    window.addEventListener('mouseup', () => dr=false);
+    window.addEventListener('mousemove', e => {
+      if (!dr) return;
+      ry += (e.clientX-px)*0.01; rx += (e.clientY-py)*0.01;
+      px=e.clientX; py=e.clientY;
+    });
+    canvas.addEventListener('touchstart', e => { dr=true; px=e.touches[0].clientX; py=e.touches[0].clientY; }, { passive:true });
+    window.addEventListener('touchend', () => dr=false);
+    window.addEventListener('touchmove', e => {
+      if (!dr) return;
+      ry += (e.touches[0].clientX-px)*0.01; rx += (e.touches[0].clientY-py)*0.01;
+      px=e.touches[0].clientX; py=e.touches[0].clientY;
+    }, { passive:true });
+    canvas.addEventListener('wheel', e => {
+      zm = Math.max(1.5, Math.min(20, zm+e.deltaY*0.01));
+      camera.position.z = zm;
+      e.preventDefault();
+    }, { passive:false });
+
+    (function anim() {
+      requestAnimationFrame(anim);
+      if (model) { if (window._ar && !dr) ry += 0.008; model.rotation.x=rx; model.rotation.y=ry; }
+      renderer.render(scene, camera);
+    })();
+
+    window.addEventListener('resize', () => {
+      const nW = canvas.parentElement.offsetWidth || 800;
+      const nH = Math.round(nW * 9/16);
+      canvas.width=nW; canvas.height=nH;
+      renderer.setSize(nW, nH);
+      camera.aspect = nW/nH;
+      camera.updateProjectionMatrix();
+    });
+
+    window.toggleRot = () => {
+      window._ar = !window._ar;
+      document.getElementById('fbx-rot-btn').textContent = `⟳ Auto Rotate: ${window._ar?'ON':'OFF'}`;
+    };
+    window.resetCam = () => { rx=0; ry=0; zm=3; camera.position.set(0,0,3); };
+  });
+})();
+</script>
+</body>
+</html>
